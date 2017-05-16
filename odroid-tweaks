@@ -1,4 +1,9 @@
 #!/bin/bash
-echo 5 > /proc/irq/143/smp_affinity_list
-echo 6 > /proc/irq/144/smp_affinity_list
-echo f > /sys/class/net/eth0/queues/rx-0/rps_cpus
+USB3_IRQ=`cat /proc/interrupts | grep "GIC-0 104" | awk -F : '{print $1}'`
+USB5_IRQ=`cat /proc/interrupts | grep "GIC-0 105" | awk -F : '{print $1}'`
+echo 5 > /proc/irq/${USB3_IRQ}/smp_affinity_list
+echo 6 > /proc/irq/${USB5_IRQ}/smp_affinity_list
+
+if [ -f /sys/class/net/eth0/queues/rx-0/rps_cpus ]; then
+	echo f > /sys/class/net/eth0/queues/rx-0/rps_cpus
+fi
