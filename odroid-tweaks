@@ -1,6 +1,6 @@
 #!/bin/bash
-USB3_IRQ=`cat /proc/interrupts | grep "GIC-0 104" | awk -F : '{print $1}'`
-USB5_IRQ=`cat /proc/interrupts | grep "GIC-0 105" | awk -F : '{print $1}'`
+USB3_IRQ=`cat /proc/interrupts | grep "GICv2 104" | awk -F : '{print $1}'`
+USB5_IRQ=`cat /proc/interrupts | grep "GICv2 105" | awk -F : '{print $1}'`
 echo 5 > /proc/irq/${USB3_IRQ}/smp_affinity_list
 echo 6 > /proc/irq/${USB5_IRQ}/smp_affinity_list
 
