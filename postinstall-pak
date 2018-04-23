@@ -1,2 +1,9 @@
 #!/bin/bash
 systemctl enable odroid-tweaks
+
+# fix NM not managing ethernet on 16.10 and forward
+touch /etc/NetworkManager/conf.d/10-globally-managed-devices.conf
+
+# fix first image issues
+sed -i "s/auto eth0//g" /etc/network/interfaces
+sed -i "s/iface eth0 inet dhcp//g" /etc/network/interfaces
