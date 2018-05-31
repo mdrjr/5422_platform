@@ -8,8 +8,12 @@ if [ -f /sys/class/net/eth0/queues/rx-0/rps_cpus ]; then
 	echo f > /sys/class/net/eth0/queues/rx-0/rps_cpus
 fi
 
-# fix chromium
-mv /usr/lib/chromium-browser/libEGL.so /usr/lib/chromium-browser/libEGL.so.org
-mv /usr/lib/chromium-browser/libGLESv2.so /usr/lib/chromium-browser/libGLESv2.so.org
-ln -s /usr/lib/arm-linux-gnueabihf/mali-egl/libmali.so /usr/lib/chromium-browser/libEGL.so
-ln -s /usr/lib/arm-linux-gnueabihf/mali-egl/libmali.so /usr/lib/chromium-browser/libGLESv2.so
+# fix chromium if possible
+if [ -e "/usr/lib/chromium-browser/libEGL.so" -a -e "/usr/lib/arm-linux-gnueabihf/mali-egl/libmali.so" ]; then
+	mv /usr/lib/chromium-browser/libEGL.so /usr/lib/chromium-browser/libEGL.so.org
+	ln -s /usr/lib/arm-linux-gnueabihf/mali-egl/libmali.so /usr/lib/chromium-browser/libEGL.so
+fi
+if [ -e "/usr/lib/chromium-browser/libGLESv2.so" -a -e "/usr/lib/arm-linux-gnueabihf/mali-egl/libmali.so" ]; then
+	mv /usr/lib/chromium-browser/libGLESv2.so /usr/lib/chromium-browser/libGLESv2.so.org
+	ln -s /usr/lib/arm-linux-gnueabihf/mali-egl/libmali.so /usr/lib/chromium-browser/libGLESv2.so
+fi
