@@ -8,6 +8,11 @@ touch /etc/NetworkManager/conf.d/10-globally-managed-devices.conf
 sed -i "s/auto eth0//g" /etc/network/interfaces
 sed -i "s/iface eth0 inet dhcp//g" /etc/network/interfaces
 
+if [ ! -f /etc/mali_switch ]; then
+	/bin/mali arm
+	touch /etc/mali_switch
+fi
+
 # fix udev rules
 cat << EOF > /lib/udev/rules.d/40-usb_modeswitch.rules
 # Part of usb-modeswitch-data, version 20191128
