@@ -1,0 +1,55 @@
+#!/bin/bash
+ID="$(id -u)"
+if [ ! "${ID}" == "0" ]
+then
+	echo "Please run this script as root (with sudo)!"
+	exit 0
+fi
+match='^([0-9A-Fa-f]{2}:){5}([0-9A-Fa-f]{2})$'
+script="$(basename "${0}")"
+interface="odroid-eth0"
+nmcli con show "${interface}" > /dev/null 2>&1
+if [ ! ${?} == "0" ]
+then
+	echo -e "\nError: interface \"${interface}\" has not been configured using Network Manager!\n"
+	echo -e "Please fix the interface name!\n"
+	exit 1
+fi
+if [ ! -e /media/boot/boot.ini ]
+then
+	echo -e "\n\"/media/boot/boot.ini\" does not exist!"
+	echo -e "Please fix this!\n"
+	exit 1
+fi
+curmac="$(grep "setenv macaddr" /media/boot/boot.ini | cut -d' ' -f3 | sed 's/"//g')"
+if [ "${curmac}" == "" ] || [[ ! ${curmac} =~ ${match} ]]
+then
+	echo -e "\nCould not find a valid mac-address in \"/media/boot/boot.ini\" !"
+	echo "Please make sure the following line is present:"
+	echo -e "setenv macaddr \"00:1e:06:61:7a:39\"\n"
+	exit 1
+fi
+usage() {
+	echo -e "Usage: ${script} <mac>\n"
+	echo -e "For example: ${script} 00:1e:06:61:7a:39\n"
+	echo -e "Current mac-address: ${curmac}\n"
+	exit 0
+}
+if [[ $# -eq 0 ]]
+then
+	usage
+fi
+if [[ ${1} =~ ${match} ]]
+then
+	newmac="$(echo "${1}" | tr '[:upper:]' '[:lower:]')"
+	echo -e "\nchange mac-address from: ${curmac} to ${newmac}..."
+	sed -i "s/^setenv macaddr.*/setenv macaddr \"${newmac}\"/g" /media/boot/boot.ini
+	echo "restarting network-interface: ${interface}..."
+	echo -e "if you're using dhcp, the ip-address has most likely changed...\n"
+	nmcli con mod "${interface}" 802-3-ethernet.cloned-mac-address "${newmac}"
+	nmcli con reload; nmcli con down "${interface}"; nmcli con up "${interface}"
+	echo -e "done!\n"
+else
+	echo -e "\nError: ${1} is not a valid mac-address!\n"
+	usage
+fi

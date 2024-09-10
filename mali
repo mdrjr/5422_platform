@@ -1,0 +1,63 @@
+#!/bin/bash
+ID="$(id -u)"
+if [ ! "${ID}" == "0" ]
+then
+	echo "Please run this script as root (using sudo)"
+	exit 0
+fi
+
+if [[ ${#} -eq 0 ]]
+then
+	PS3="Please select which GPU driver to use: "
+	options=("ARM: Binary Driver (default)" "Panfrost: Works for both XFCE4 and Gnome Desktop (wayland)" "Quit")
+	select opt in "${options[@]}"
+	do
+		case ${opt} in
+			"ARM: Binary Driver (default)")
+				driver="arm"
+				break
+				;;
+			"Panfrost: Works for both XFCE4 and Gnome Desktop (wayland)")
+				driver="panfrost"
+				break
+				;;
+			"Quit")
+				exit 0
+				;;
+			*) echo "invalid option $REPLY";;
+		esac
+	done
+else
+	if [ ! "${1}" == "arm" ] && [ ! "${1}" == "panfrost" ]
+	then
+		echo "Error: please specify either \"arm\" or \"panfrost\" as a single argument!"
+		exit 0
+	else
+		driver="${1}"
+	fi
+fi
+if [ "${driver}" == "arm" ]
+then
+	echo -e "\n\nConfiguring ARM (mali_kbase) GPU driver...\n"
+	echo "set: \"blacklist panfrost\" in: /etc/modprobe.d/blacklist-mali.conf"
+	echo 'blacklist panfrost' > /etc/modprobe.d/blacklist-mali.conf
+	echo "set: \"/usr/lib/arm-linux-gnueabihf/mali-egl\" in: /etc/ld.so.conf.d/000-arm-mali.conf"
+	echo '/usr/lib/arm-linux-gnueabihf/mali-egl' > /etc/ld.so.conf.d/000-arm-mali.conf
+else
+	echo -e "\n\nConfiguring Panfrost GPU driver...\n"
+	echo "set: \"blacklist mali_kbase\" in: /etc/modprobe.d/blacklist-mali.conf"
+	echo 'blacklist mali_kbase' > /etc/modprobe.d/blacklist-mali.conf
+	echo "remove: /etc/ld.so.conf.d/000-arm-mali.conf"
+	rm -f /etc/ld.so.conf.d/000-arm-mali.conf
+fi
+echo "run: ldconfig"
+ldconfig
+kernel="$(uname -r)"
+echo -e "\nGeneraing new initramfs and uInitrd for current kernel: ${kernel}\n\n"
+update-initramfs -c -k "${kernel}"
+rm -f "/boot/uInitrd-${kernel}.old"
+mv "/boot/uInitrd-${kernel}" "/boot/uInitrd-${kernel}.old"
+mkimage -A arm -O linux -T ramdisk -C none -a 0 -e 0 -n uInitrd -d "/boot/initrd.img-${kernel}" "/boot/uInitrd-${kernel}"
+cp -v -f "/boot/uInitrd-${kernel}" /media/boot/uInitrd
+sync
+echo -e "\nDone! Please reboot your system to use the new driver.\n\n"
