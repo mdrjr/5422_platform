@@ -1,9 +1,22 @@
 #!/bin/bash
-USB3_IRQ=`cat /proc/interrupts | grep "xhci-hcd:usb3" | awk -F : '{print $1}'`
-USB5_IRQ=`cat /proc/interrupts | grep "xhci-hcd:usb5" | awk -F : '{print $1}'`
-echo 5 > /proc/irq/${USB3_IRQ}/smp_affinity_list
-echo 6 > /proc/irq/${USB5_IRQ}/smp_affinity_list
 
+set_usb_smp_affinity () {
+  local usb_port="$1"
+  local cpu="$2"
+
+  USB_IRQ=`sed -ne "/xhci-hcd:usb${usb_port}/ s/^\\([0-9]*\\):.*\$/\\1/p" /proc/interrupts`
+  CPU_SYSFS="/sys/devices/system/cpu/cpu${cpu}/online"
+  if [ -r $CPU_SYSFS -a "`cat $CPU_SYSFS`" -eq 1 ] ; then
+		echo $cpu > /proc/irq/${USB_IRQ}/smp_affinity_list
+  fi
+}
+
+set_usb_smp_affinity 3 5
+set_usb_smp_affinity 5 6
+
+# use 4 little cores for Receive Packet Steering, if available
 if [ -f /sys/class/net/eth0/queues/rx-0/rps_cpus ]; then
-	echo f > /sys/class/net/eth0/queues/rx-0/rps_cpus
+	if [ "`cat /sys/devices/system/cpu/cpu3/online`" -eq 1 ] ; then
+		echo f > /sys/class/net/eth0/queues/rx-0/rps_cpus
+	fi
 fi
